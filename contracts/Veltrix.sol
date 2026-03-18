@@ -25,7 +25,7 @@ contract Veltrix is ERC20, Pausable, Ownable {
     address public PancakeSwapPool;
 
     // Tax settings
-    address private constant taxWallet = 0x572a2d6c13dF2C43a1D8CAC5e93361250cf064c5;
+    address private taxWallet;
     uint256 public constant buyTaxPercent = 3;
     uint256 public constant sellTaxPercent = 5;
 
@@ -38,17 +38,16 @@ contract Veltrix is ERC20, Pausable, Ownable {
         _mint(0x22914550EE4b973f892ED0f344bCa7495987747e, exchangeReserve);
     }
 
-    // for ETH network ETH: Call setUniswapPool, for BNB network BNB: Call setPancakeSwapPool
+    function setTaxWallet(address _taxWallet) external onlyOwner{
+        require(_taxWallet != address(0), "TaxWallet: can't be zero");
+        taxWallet = _taxWallet;
+    }
+
+    // Just changes uniswapPool to PancakeSwapPool for BNB (PancakeSwap)
     function setUniswapPool(address _uniswapPool) external onlyOwner {
-        require(_uniswapPool != address(0), "Pool Address Can't be Zero");
+        require(_uniswapPool != address(0), "Pool address cannot be zero");
         uniswapPool = _uniswapPool;
     }
-    /* // Run this When work on BNB network
-    function setPancakeSwapPool(address _pancakeSwapPool) external onlyOwner {
-        require(_pancakeSwapPool != address(0), "Pool Address Can't be Zero");
-        pancakeSwapPool = _pancakeSwapPool;
-    }
-    */
 
     function pause() external onlyOwner {
         _pause();
@@ -58,7 +57,6 @@ contract Veltrix is ERC20, Pausable, Ownable {
         _unpause();
     }
 
-    // Increase allowance & Decrease allowance
     function increaseAllowance(address spender, uint256 addedValue) public returns (bool) {
         _approve(_msgSender(), spender, allowance(_msgSender(), spender) + addedValue);
         return true;
@@ -66,31 +64,33 @@ contract Veltrix is ERC20, Pausable, Ownable {
 
     function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool) {
         uint256 currentAllowance = allowance(_msgSender(), spender);
-        require(currentAllowance >= subtractedValue, "ERC20 decreased allowance below zero");
+        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
         _approve(_msgSender(), spender, currentAllowance - subtractedValue);
         return true;
     }
 
-    // Update function for Tax, First Buy Owner & LP pool
-    function _update(address from, address to, uint256 value) internal override whenNotPaused {
-        // ETH: Use  uniswapPool, BNB use pakcakeSwapPool comment and Uncomment based on your need.
-        if (!firstBuyCompleted && from == uniswapPool && from != address(0)) { // ETH network line
-        // if (!firstBuyCompleted && from == PancakeSwapPool && from != address(0)) { // BNB network line
-            require(to == owner(), "First Buy Pending");
-            firstBuyCompleted = true;
-            emit FirstBuyDone();
+    function _update(
+        address from,
+        address to,
+        uint256 value
+    ) internal override whenNotPaused {
+        // Just changes pancakeSwapPool to uniswapPool for ETH (Uniswap)
+        // Set pool address to the contract and first buy from the owner address then start trading.
+        if (!firstBuyCompleted && from != address(0)) {
+            if (from == uniswapPool && uniswapPool != address(0)) {
+                require(to == owner(), "First Buy Pending");
+                firstBuyCompleted = true;
+                emit FirstBuyDone();
+            }
         }
 
         uint256 sendAmount = value;
 
-        // Buy & sell tax
+        // Buy / sell tax (3% buy, 5% sell). No tax on normal transfers.
         if (taxWallet != address(0)) {
-            // ETH network
+            // Just changes uniswapPool to PancakeSwapPool for BNB (PancakeSwap)
             bool isBuy = (from == uniswapPool && uniswapPool != address(0));
             bool isSell = (to == uniswapPool && uniswapPool != address(0));
-            // BNB network
-            // bool isBuy = (from ==  PancakeSwapPool && PancakeSwapPool != address(0));
-            // bool isSell = (to == PancakeSwapPool && PancakeSwapPool != address(0));
 
             if (isBuy || isSell) {
                 uint256 taxPercent = isBuy ? buyTaxPercent : sellTaxPercent;
@@ -104,6 +104,5 @@ contract Veltrix is ERC20, Pausable, Ownable {
         }
 
         super._update(from, to, sendAmount);
-        
     }
 }
