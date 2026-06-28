@@ -28,7 +28,7 @@ module.exports = {
             chainId: 11155111,
             accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
         },
-        mainnet: {
+        eth: {
             url: ETH_MAINNET_RPC_URL || "",
             chainId: 1,
             accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
