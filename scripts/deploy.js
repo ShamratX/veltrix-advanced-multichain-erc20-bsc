@@ -27,10 +27,12 @@ const main = async () => {
         const totalSupplyFormated = ethers.formatUnits(totalSupply ,18);
 
         console.log(`Contract Address: ${contractAddress}`);
-        console.log(`Verify: npx hardhat verify --network ${network.name} ${contractAddress}`);
         console.log(`Deployemnt Tx Hash: ${txHash}`);
         console.log(`Total Supply in Wei: ${totalSupply}`);
-        console.log(`Total Supply Formatted: ${totalSupplyFormated}`);       
+        console.log(`Total Supply Formatted: ${totalSupplyFormated}`);
+        
+        console.log("\nVerify Command:");
+        console.log(`npx hardhat verify --network ${network.name} ${contractAddress}`);    
 
     } 
      catch (error) {
